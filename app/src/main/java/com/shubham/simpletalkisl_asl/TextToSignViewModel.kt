@@ -55,5 +55,43 @@ class TextToSignViewModel : ViewModel (){
      * taps the "Translate" button
      */
 
+    fun onTranslateClicked(){
+        //Get the current text from the state
+        //Make it lowercase, and remote any extra spaces.
+        val textToTranslate = _uiState.value.textInput.trim().lowercase()
+
+        //---This is our "mock" database for now---
+        //It's a simple 'map' that links text String to its description
+        val signDatabase = mapOf(
+            "hello" to "A wave of the hand.",
+            "goodbye" to "An open palm waving away . ",
+            "a" to "A closed fist with the thumb on the side.",
+            "b" to "An open palm with  four fingers up, thumb tucked in."
+            //We'll add ISL and ASL image in the next steps .
+        )
+
+        //-------------------------------------------------------------------------------------------
+        //we look up the text in our database.
+        val description = signDatabase[textToTranslate]
+
+        if(description !=null){
+            //Found it! update the state with description
+
+            _uiState.update { currentState ->
+                currentState.copy(
+                    signDescription = description
+                )
+            }
+
+        }else{
+            //Didn't find it.Update the state with an error message.
+
+            _uiState.update { currentState ->
+                currentState.copy(
+                    signDescription = "Sorry , that sign is not in our library yet ."
+                )
+            }
+        }
+    }
 
 }
