@@ -1,5 +1,7 @@
 package com.shubham.simpletalkisl_asl
 
+import android.R
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -18,12 +20,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.shubham.simpletalkisl_asl.ui.theme.SimpleTalkISLASLTheme
 import kotlin.math.sin
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.unit.dp
+
 
 /**
  * This is our "View"(the composable screen).
@@ -79,7 +89,9 @@ fun TextToSignLayout(
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             )
             {
@@ -87,7 +99,8 @@ fun TextToSignLayout(
                 Text(
                     text = "Enter text to translate ",
                     style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .padding(bottom = 8.dp)
                 )
 
@@ -128,36 +141,54 @@ fun TextToSignLayout(
                 Text(
                     text = "Sign Language Guide",
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .padding(bottom = 8.dp)
                 )
 
-                if (uiState.signDescription.isNullOrBlank() && uiState.signDescription != "Sorry that sign is not in out library yet.") {
+                if (uiState.translation.isNotEmpty()) {
+
+                    LazyRow(modifier = Modifier.fillMaxWidth()) {
+                        items(uiState.translation) { sign ->
+                            Column(
+                                modifier = Modifier
+                                    .padding(horizontal = 8.dp)
+                                    .width(100.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Image(
+                                    painter = painterResource(id = sign.imageResId),
+                                    contentDescription = sign.description,
+                                    modifier = Modifier
+                                        .width(100.dp)
+                                        .height(100.dp)
+                                        .padding(bottom = 4.dp)
+                                )
+                                Text(
+                                    text = sign.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                } else if (uiState.errorMessage !=null){
                     Text(
-                        text = uiState.signDescription,
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                else if (uiState.signDescription == "Sorry that sign is not in our library yet") {
-                    Text(
-                        text = uiState.signDescription,
+                        text=uiState.errorMessage,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
+                        textAlign= TextAlign.Center,
+                        modifier =Modifier.fillMaxWidth()
                     )
 
-                } else {
-                    //Initial state or no input yet show a hint
+                }
+                else {
                     Text(
                         text = "Visual guide for each word will appear here",
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
-
                 }
 
             }
@@ -174,7 +205,8 @@ fun TextToSignScreenPreview() {
         TextToSignLayout(
             uiState = TextToSignViewModel.TextToSignUiState(
                 textInput = "Example",
-                signDescription = "This is what a description will look like."
+              translation = emptyList(),
+                errorMessage = null
             ),
             onTextChanged = {},  //In a preview ,event do nothing
             onTranslateClicked = {} //In a preview , event do nothing
