@@ -32,7 +32,7 @@ class HandLandmarkerHelper(
             val optionsBuilder = HandLandmarker.HandLandmarkerOptions.builder()
                 .setBaseOptions(baseOptions)
                 .setMinHandDetectionConfidence(0.5f) //50% confidence needed
-                .setMinTrackingConfidence(0.5f)
+                .setMinTrackingConfidence(0.7f)
                 .setRunningMode(RunningMode.LIVE_STREAM)
                 .setResultListener(this::returnLiveStreamResult)
                 .setErrorListener(this::returnLiveStreamError)
@@ -45,12 +45,15 @@ class HandLandmarkerHelper(
         }
     }
 
-    fun detectLiveStream(bitmap: Bitmap, isFrontCamera: Boolean) {
+    fun detectLiveStream(bitmap: Bitmap, isFrontCamera: Boolean,rotationDegrees :Int) {
+
+        val imageProcessingOptions = com.google.mediapipe.tasks.vision.core.ImageProcessingOptions.builder()
+            .setRotationDegrees(rotationDegrees)
+            .build()
 
         val mpImage = BitmapImageBuilder(bitmap).build()
 
         val frameTime = SystemClock.uptimeMillis()
-
         handLandmarker?.detectAsync(mpImage, frameTime)
 
     }
@@ -62,7 +65,9 @@ class HandLandmarkerHelper(
         handLandmarkerHelperListener.onResult(
             ResultBundle(
                 results = listOf(result),
-                inferenceTime = inferenceTime
+                inferenceTime = inferenceTime,
+                inputImageHeight = input.height,
+                inputImageWidth = input.width
             )
         )
     }
@@ -73,7 +78,9 @@ class HandLandmarkerHelper(
 
     data class ResultBundle(
         val results: List<HandLandmarkerResult>,
-        val inferenceTime: Long
+        val inferenceTime: Long,
+        val inputImageHeight : Int,
+        val inputImageWidth : Int
     )
 
     interface LandmarkerListener {

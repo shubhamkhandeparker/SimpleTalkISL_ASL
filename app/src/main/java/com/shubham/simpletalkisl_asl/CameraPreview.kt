@@ -17,6 +17,9 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContentProviderCompat
 import java.util.concurrent.Executors
+import androidx.camera.core.AspectRatio
+import androidx.camera.view.CameraController
+
 
 @Composable
 fun CameraPreview(
@@ -29,8 +32,10 @@ fun CameraPreview(
     val cameraController= remember {
         LifecycleCameraController(context).apply {
             cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
             setImageAnalysisBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+
+           imageAnalysisTargetSize = CameraController.OutputSize(android.util.Size(640,480))
+            previewTargetSize = CameraController.OutputSize(AspectRatio.RATIO_4_3)
 
         }
     }
@@ -53,7 +58,8 @@ fun CameraPreview(
             factory={ctx ->
                 PreviewView(ctx).apply {
                     controller = cameraController
-                    scaleType = PreviewView.ScaleType.FILL_START
+                    scaleType = PreviewView.ScaleType.FILL_CENTER
+
                 }
             },
             modifier = Modifier.fillMaxSize(),
@@ -69,9 +75,11 @@ private fun processImageProxy(
     imageProxy: ImageProxy
 ){
     val bitmap = imageProxy.toBitmap()
+    val rotationDegrees = 0
+
     val isFrontCamera = false
 
-    helper.detectLiveStream(bitmap,isFrontCamera)
+    helper.detectLiveStream(bitmap,isFrontCamera,rotationDegrees)
     imageProxy.close()
 }
 
