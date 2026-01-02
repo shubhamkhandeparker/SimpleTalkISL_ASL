@@ -1,6 +1,6 @@
 package com.shubham.simpletalkisl_asl
 
-import android.R
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,9 +30,8 @@ import com.shubham.simpletalkisl_asl.ui.theme.SimpleTalkISLASLTheme
 import kotlin.math.sin
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.width
-import androidx.compose.ui.unit.dp
+
 
 
 /**

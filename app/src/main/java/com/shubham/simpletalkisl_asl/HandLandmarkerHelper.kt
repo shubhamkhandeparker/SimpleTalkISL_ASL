@@ -46,6 +46,9 @@ class HandLandmarkerHelper(
     }
 
     fun detectLiveStream(bitmap: Bitmap, isFrontCamera: Boolean,rotationDegrees :Int) {
+try{
+
+
 
         val imageProcessingOptions = com.google.mediapipe.tasks.vision.core.ImageProcessingOptions.builder()
             .setRotationDegrees(rotationDegrees)
@@ -56,6 +59,9 @@ class HandLandmarkerHelper(
         val frameTime = SystemClock.uptimeMillis()
         handLandmarker?.detectAsync(mpImage, frameTime)
 
+    } catch (e: Exception){
+        handLandmarkerHelperListener.onError(e.message?: "detectLiveStream failed")
+    }
     }
 
     private fun returnLiveStreamResult(result: HandLandmarkerResult, input: MPImage) {

@@ -1,53 +1,114 @@
 package com.shubham.simpletalkisl_asl
 
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarkerResult
+import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
 
 class SignLanguageRecognizer {
 
-    fun recognizeHandGesture(result:HandLandmarkerResult):String{
+    private var lastGesture: String = ""
+    private var stableCount: Int = 0
+    private val STABLE_FRAMES = 3
 
-        val landmarks = result.landmarks().firstOrNull()?: return ""
+    fun recognizeHandGesture(result: HandLandmarkerResult): String {
 
+        val landmarks = result.landmarks().firstOrNull() ?: return ""
+
+        // --- Palm landmarks ---
+        val wrist = landmarks[0]
+
+        val thumbMcp = landmarks[2]
+        val thumbIp = landmarks[3]
         val thumbTip = landmarks[4]
+
+        val indexMcp = landmarks[5]
+        val indexPip = landmarks[6]
         val indexTip = landmarks[8]
+
+        val middleMcp = landmarks[9]
+        val middlePip = landmarks[10]
         val middleTip = landmarks[12]
+
+        val ringMcp = landmarks[13]
+        val ringPip = landmarks[14]
         val ringTip = landmarks[16]
+
+        val pinkyMcp = landmarks[17]
+        val pinkyPip = landmarks[18]
         val pinkyTip = landmarks[20]
 
-        val indexPip = landmarks[6]
-        val middlePip = landmarks[10]
-        val ringPip = landmarks[14]
-        val pinkyPip = landmarks[18]
+        // --- Finger states ---
+        val isIndexOpen = GestureRules.isFingerOpen(indexMcp, indexPip, indexTip)
+        val isMiddleOpen = GestureRules.isFingerOpen(middleMcp, middlePip, middleTip)
+        val isRingOpen = GestureRules.isFingerOpen(ringMcp, ringPip, ringTip)
+        val isPinkyOpen = GestureRules.isFingerOpen(pinkyMcp, pinkyPip, pinkyTip)
 
-        val isThumbUp = thumbTip.y() <indexTip.y() && thumbTip.y() < middleTip.y()
+        // --- Thumb state ---
+        val thumbUp = GestureRules.isThumbUp(
+            thumbTip = thumbTip,
+            indexMcp = indexMcp,
+            wrist = wrist
+        )
 
-        val areFingersCurled = indexTip.y() > indexPip.y() &&
-                middleTip.y() > middlePip.y() &&
-                ringTip.y() > ringPip.y() &&
-                pinkyTip.y() > pinkyPip.y()
+        // --- Gesture detection (priority order matters) ---
+        val detectedGesture = when {
 
+            GestureRules.isPalmOpen(
+                indexOpen = isIndexOpen,
+                middleOpen = isMiddleOpen,
+                ringOpen = isRingOpen,
+                pinkyOpen = isPinkyOpen,
+                thumbTip = thumbTip,
+                indexMcp = indexMcp,
+                wrist = wrist
+            ) -> "Palm / Stop"
 
-        if(isThumbUp && areFingersCurled){
-            return "Thumbs Up"
+            GestureRules.isOkGesture(
+                thumbTip = thumbTip,
+                indexTip = indexTip,
+                middleTip = middleTip,
+                ringTip = ringTip,
+                pinkyTip = pinkyTip,
+                wrist = wrist
+            ) -> "OK"
+
+            thumbUp && GestureRules.isFist(
+                indexOpen = isIndexOpen,
+                middleOpen = isMiddleOpen,
+                ringOpen = isRingOpen,
+                pinkyOpen = isPinkyOpen
+            ) -> "Thumbs Up"
+
+            GestureRules.isFist(
+                indexOpen = isIndexOpen,
+                middleOpen = isMiddleOpen,
+                ringOpen = isRingOpen,
+                pinkyOpen = isPinkyOpen
+            ) -> "Fist"
+
+            GestureRules.isPointing(
+                indexOpen = isIndexOpen,
+                middleOpen = isMiddleOpen,
+                ringOpen = isRingOpen,
+                pinkyOpen = isPinkyOpen
+            ) -> "Point"
+
+            isIndexOpen && isMiddleOpen && !isRingOpen && !isPinkyOpen ->
+                "Victory / V"
+
+            isIndexOpen && isMiddleOpen && isRingOpen && isPinkyOpen ->
+                "Hello / Open Hand"
+
+            else -> ""
         }
 
-        val areAllFingersOpen = indexTip.y() < indexPip.y() &&
-                middleTip.y() < middlePip.y() &&
-                ringTip.y() < ringPip.y() &&
-                pinkyTip.y() < pinkyPip.y()
-
-        if(areAllFingersOpen){
-            return  "Hello / Open Hand"
+        // --- Stabilization ---
+        if (detectedGesture == lastGesture && detectedGesture.isNotEmpty()) {
+            stableCount++
+        } else {
+            stableCount = 0
+            lastGesture = detectedGesture
         }
 
-        val isIndexOpen = indexTip.y() < indexPip.y()
-        val isMiddleOpen = middleTip.y() <middlePip.y()
-        val areOtherCurled = ringPip.y() > ringPip.y() && pinkyTip.y() > pinkyPip.y()
-
-        if(isIndexOpen && isMiddleOpen && areOtherCurled){
-            return "Victory /v"
-        }
-
-        return "" // No gesture recognized 
+        return if (stableCount >= STABLE_FRAMES) detectedGesture else ""
     }
 }

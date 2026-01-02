@@ -19,25 +19,42 @@ import androidx.core.content.ContentProviderCompat
 import java.util.concurrent.Executors
 import androidx.camera.core.AspectRatio
 import androidx.camera.view.CameraController
+import android.graphics.Bitmap
+import android.graphics.Matrix
 
+
+private fun Bitmap.rotate(degrees: Int): Bitmap {
+    if (degrees == 0) return this
+    val matrix = Matrix().apply { postRotate(degrees.toFloat()) }
+    return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
+}
+
+private fun Bitmap.flipHorizontal(): Bitmap {
+    val matrix = Matrix().apply { preScale(-1f, 1f) }
+    return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
+}
 
 @Composable
 fun CameraPreview(
     handLandmarkerHelper: HandLandmarkerHelper,
-    modifier:Modifier= Modifier
-){
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    val cameraController= remember {
+    val cameraController = remember {
         LifecycleCameraController(context).apply {
             cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
             setImageAnalysisBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
 
-           imageAnalysisTargetSize = CameraController.OutputSize(android.util.Size(640,480))
+            imageAnalysisTargetSize = CameraController.OutputSize(android.util.Size(640, 480))
             previewTargetSize = CameraController.OutputSize(AspectRatio.RATIO_4_3)
 
         }
+    }
+
+    val isFrontCamera = remember {
+        cameraController.cameraSelector == CameraSelector.DEFAULT_FRONT_CAMERA
     }
 
     LaunchedEffect(key1 = cameraController) {
@@ -45,17 +62,17 @@ fun CameraPreview(
 
         cameraController.setImageAnalysisAnalyzer(
             backgroundExecutor,
-            {imageProxy ->
+            { imageProxy ->
 
-                processImageProxy(handLandmarkerHelper,imageProxy)
+                processImageProxy(handLandmarkerHelper, imageProxy, isFrontCamera)
 
             }
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize()){
+    Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
-            factory={ctx ->
+            factory = { ctx ->
                 PreviewView(ctx).apply {
                     controller = cameraController
                     scaleType = PreviewView.ScaleType.FILL_CENTER
@@ -71,16 +88,31 @@ fun CameraPreview(
 }
 
 private fun processImageProxy(
-    helper : HandLandmarkerHelper,
-    imageProxy: ImageProxy
-){
-    val bitmap = imageProxy.toBitmap()
-    val rotationDegrees = 0
+    helper: HandLandmarkerHelper,
+    imageProxy: ImageProxy,
+    isFrontCamera: Boolean
+) {
+    try {
 
-    val isFrontCamera = false
+        val bitmap = imageProxy.toBitmap()
 
-    helper.detectLiveStream(bitmap,isFrontCamera,rotationDegrees)
-    imageProxy.close()
+        val rotationDegrees = imageProxy.imageInfo.rotationDegrees
+
+
+        var correctedBitmap = if (rotationDegrees != 0) bitmap.rotate(rotationDegrees) else bitmap
+
+        if (isFrontCamera) {
+            correctedBitmap = correctedBitmap.flipHorizontal()
+        }
+
+
+
+        helper.detectLiveStream(correctedBitmap, isFrontCamera, 0)
+    } catch (t: Throwable) {
+        t.printStackTrace()
+    } finally {
+        imageProxy.close()
+    }
 }
 
 
